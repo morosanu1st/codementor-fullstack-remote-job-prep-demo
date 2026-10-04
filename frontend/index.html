@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Job Prep Tasks — Full-Stack Demo</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #1a1a1a; }
+    body { max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; gap: .5rem; align-items: center; padding: .4rem 0; border-bottom: 1px solid #eee; }
+    li.done span { text-decoration: line-through; color: #666; }
+    input[type="text"] { flex: 1; padding: .4rem; }
+    button { cursor: pointer; }
+    #status { font-size: .85rem; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Tasks (talk-through demo)</h1>
+  <p id="status">Loading…</p>
+  <form id="add">
+    <input type="text" id="title" placeholder="New task" required />
+    <button type="submit">Add</button>
+  </form>
+  <ul id="list"></ul>
+  <script>
+    const API = 'http://localhost:3847';
+    const statusEl = document.getElementById('status');
+    const listEl = document.getElementById('list');
+
+    async function load() {
+      try {
+        const res = await fetch(API + '/api/tasks');
+        const data = await res.json();
+        statusEl.textContent = 'API OK · ' + data.tasks.length + ' tasks';
+        listEl.innerHTML = '';
+        for (const t of data.tasks) {
+          const li = document.createElement('li');
+          if (t.done) li.classList.add('done');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = t.done;
+          cb.onchange = () => toggle(t.id, cb.checked);
+          const span = document.createElement('span');
+          span.textContent = t.title;
+          li.append(cb, span);
+          listEl.append(li);
+        }
+      } catch (e) {
+        statusEl.textContent = 'Start the API: cd backend && npm i && npm start';
+      }
+    }
+
+    async function toggle(id, done) {
+      await fetch(API + '/api/tasks/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done }),
+      });
+      load();
+    }
+
+    document.getElementById('add').onsubmit = async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      await fetch(API + '/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      document.getElementById('title').value = '';
+      load();
+    };
+
+    load();
+  </script>
+</body>
+</html>
